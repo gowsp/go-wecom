@@ -27,7 +27,7 @@
 
 - [开发前必读](https://developer.work.weixin.qq.com/document/path/90664)
 - [基本概念介绍](https://developer.work.weixin.qq.com/document/path/90665)
-- [x] [获取access_token](https://developer.work.weixin.qq.com/document/path/91039) — [client/client.go:163](../client/client.go#L163)
+- [x] [获取access_token](https://developer.work.weixin.qq.com/document/path/91039) — [client/client.go:164](../client/client.go#L164)
 - [回调配置](https://developer.work.weixin.qq.com/document/path/90930)
 - [x] [获取企业微信接口IP段](https://developer.work.weixin.qq.com/document/path/92520) — [iprange.go:21](../iprange.go#L21)
 - [x] [获取企业微信回调IP段](https://developer.work.weixin.qq.com/document/path/92521) — [iprange.go:29](../iprange.go#L29)
@@ -175,7 +175,7 @@
 - [x] [更新模版卡片消息](https://developer.work.weixin.qq.com/document/path/94888) — [message/recall.go:55](../message/recall.go#L55)
 - [x] [撤回应用消息](https://developer.work.weixin.qq.com/document/path/94867) — [message/recall.go:17](../message/recall.go#L17)
 - [x] 接收消息与事件
-  - [x] [概述](https://developer.work.weixin.qq.com/document/path/90238) — [callback/callback.go:120](../callback/callback.go#L120)
+  - [x] [概述](https://developer.work.weixin.qq.com/document/path/90238) — [callback/callback.go:129](../callback/callback.go#L129)
   - [消息格式](https://developer.work.weixin.qq.com/document/path/90239)
   - [事件格式](https://developer.work.weixin.qq.com/document/path/90240)
   - [被动回复消息格式](https://developer.work.weixin.qq.com/document/path/90241)
@@ -368,13 +368,13 @@
   - [x] [获取客服账号列表](https://developer.work.weixin.qq.com/document/path/94661) — [kf/account.go:23](../kf/account.go#L23)
   - [x] [获取客服账号链接](https://developer.work.weixin.qq.com/document/path/94665) — [kf/account.go:92](../kf/account.go#L92)
 - [x] 接待人员管理
-  - [x] [添加接待人员](https://developer.work.weixin.qq.com/document/path/94646) — [kf/kf.go:269](../kf/kf.go#L269)
-  - [x] [删除接待人员](https://developer.work.weixin.qq.com/document/path/94647) — [kf/kf.go:276](../kf/kf.go#L276)
-  - [x] [获取接待人员列表](https://developer.work.weixin.qq.com/document/path/94645) — [kf/kf.go:242](../kf/kf.go#L242)
+  - [x] [添加接待人员](https://developer.work.weixin.qq.com/document/path/94646) — [kf/kf.go:290](../kf/kf.go#L290)
+  - [x] [删除接待人员](https://developer.work.weixin.qq.com/document/path/94647) — [kf/kf.go:297](../kf/kf.go#L297)
+  - [x] [获取接待人员列表](https://developer.work.weixin.qq.com/document/path/94645) — [kf/kf.go:263](../kf/kf.go#L263)
 - [x] 会话分配与消息收发
   - [x] [分配客服会话](https://developer.work.weixin.qq.com/document/path/94669) — [kf/kf.go:41](../kf/kf.go#L41)
-  - [x] [接收消息和事件](https://developer.work.weixin.qq.com/document/path/94670) — [kf/kf.go:171](../kf/kf.go#L171)
-  - [x] [发送消息](https://developer.work.weixin.qq.com/document/path/94677) — [kf/kf.go:211](../kf/kf.go#L211)
+  - [x] [接收消息和事件](https://developer.work.weixin.qq.com/document/path/94670) — [kf/kf.go:192](../kf/kf.go#L192)
+  - [x] [发送消息](https://developer.work.weixin.qq.com/document/path/94677) — [kf/kf.go:232](../kf/kf.go#L232)、[kf/text.go:32](../kf/text.go#L32)
   - [x] [发送欢迎语等事件响应消息](https://developer.work.weixin.qq.com/document/path/95122) — [kf/event.go:69](../kf/event.go#L69)
 - [x] [「升级服务」配置](https://developer.work.weixin.qq.com/document/path/94674) — [kf/upgrade.go:60](../kf/upgrade.go#L60)
 - [x] 其他基础信息获取

@@ -18,13 +18,13 @@ type KF struct{ api *client.Client }
 
 func New(api *client.Client) *KF { return &KF{api: api} }
 
-// Session states accepted by the WeCom customer-service state API.
+// Session states from https://developer.work.weixin.qq.com/document/path/94669.
 const (
-	StateAssistant = 2 // this service handles the conversation
-	// StateQueue parks the conversation in the reception queue. WeCom only
-	// accepts a direct switch to the human state from specific states, so the
-	// handoff goes through the queue with the target employee attached.
-	StateQueue = 3
+	StatePending   = 0
+	StateAssistant = 1
+	StateQueue     = 2
+	StateHuman     = 3
+	StateEnded     = 4
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 )
 
 // State returns the current customer-service state for one conversation:
-// 0 未处理, 1 由接待人员接待, 2 由智能助手接待, 3 待接入池排队.
+// 0 未处理, 1 智能助手, 2 排队, 3 人工接待, 4 已结束/未开始.
 //
 // 文档: https://developer.work.weixin.qq.com/document/path/94669
 func (c *KF) State(ctx context.Context, openKfID, externalUserID string) (int, error) {
@@ -48,33 +48,54 @@ func (c *KF) State(ctx context.Context, openKfID, externalUserID string) (int, e
 	return out.ServiceState, err
 }
 
-// Accept moves the conversation to the assistant state. WeCom only accepts
-// send_msg while the session is in an assistant or human state; a queued
-// session is rejected with errcode 95018.
-//
-// 文档: https://developer.work.weixin.qq.com/document/path/94669
-func (c *KF) Accept(ctx context.Context, openKfID, externalUserID string) error {
-	return c.api.Call(ctx, "customer service state", stateTransPath, map[string]any{
-		"open_kfid": openKfID, "external_userid": externalUserID,
-		"service_state": StateAssistant,
-	}, nil)
+// ChangeStateRequest requests a server-validated transition. A servicer is
+// required only for StateHuman; the permitted source state is checked by WeCom.
+type ChangeStateRequest struct {
+	OpenKfID       string `json:"open_kfid"`
+	ExternalUserID string `json:"external_userid"`
+	ServiceState   int    `json:"service_state"`
+	ServicerUserID string `json:"servicer_userid,omitempty"`
 }
 
-// Transfer hands a customer-service conversation to one reception employee by
-// parking it in the reception queue with that employee as the servicer. WeCom
-// rejects a direct jump to the human state (errcode 95016), and a queue entry
-// without a servicer is rejected too (95014).
-//
+// ChangeStateResult contains the code for an optional event response message.
+type ChangeStateResult struct {
+	MsgCode string `json:"msg_code"`
+}
+
+// ChangeState changes a session; it does not send an acknowledgement message.
+// See https://developer.work.weixin.qq.com/document/path/94669.
+func (c *KF) ChangeState(ctx context.Context, request ChangeStateRequest) (ChangeStateResult, error) {
+	var out ChangeStateResult
+	if strings.TrimSpace(request.OpenKfID) == "" || strings.TrimSpace(request.ExternalUserID) == "" {
+		return out, errors.New("customerservice: account and customer ids are required")
+	}
+	if request.ServiceState < StatePending || request.ServiceState > StateEnded {
+		return out, errors.New("customerservice: invalid session state")
+	}
+	if request.ServiceState == StateHuman && strings.TrimSpace(request.ServicerUserID) == "" {
+		return out, errors.New("customerservice: human state requires a servicer user id")
+	}
+	if request.ServiceState != StateHuman && request.ServicerUserID != "" {
+		return out, errors.New("customerservice: servicer is only valid for human state")
+	}
+	err := c.api.Call(ctx, "customer service state", stateTransPath, request, &out)
+	return out, err
+}
+
+// Accept requests assistant reception. Sending is permitted in pending or
+// assistant state; the caller remains responsible for its reception policy.
+// 文档: https://developer.work.weixin.qq.com/document/path/94669
+func (c *KF) Accept(ctx context.Context, openKfID, externalUserID string) error {
+	_, err := c.ChangeState(ctx, ChangeStateRequest{OpenKfID: openKfID, ExternalUserID: externalUserID, ServiceState: StateAssistant})
+	return err
+}
+
+// Transfer assigns a session directly to an available reception employee.
+// WeCom checks employee activation, availability and the source session state.
 // 文档: https://developer.work.weixin.qq.com/document/path/94669
 func (c *KF) Transfer(ctx context.Context, openKfID, externalUserID, userID string) error {
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
-		return errors.New("customerservice: transfer requires a servicer user id")
-	}
-	return c.api.Call(ctx, "customer service transfer", stateTransPath, map[string]any{
-		"open_kfid": openKfID, "external_userid": externalUserID,
-		"service_state": StateQueue, "servicer_userid": userID,
-	}, nil)
+	_, err := c.ChangeState(ctx, ChangeStateRequest{OpenKfID: openKfID, ExternalUserID: externalUserID, ServiceState: StateHuman, ServicerUserID: strings.TrimSpace(userID)})
+	return err
 }
 
 // Message origins reported by WeCom.

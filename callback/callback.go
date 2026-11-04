@@ -43,12 +43,21 @@ const (
 	callbackMaxKeyChars = 128
 )
 
+// Exported sentinels support errors.Is without exposing credentials or plaintext.
 var (
-	errCallbackConfig    = errors.New("wecom callback: invalid configuration")
-	errCallbackSignature = errors.New("wecom callback: signature mismatch")
-	errCallbackEnvelope  = errors.New("wecom callback: invalid encrypted envelope")
-	errCallbackDecrypt   = errors.New("wecom callback: decryption failed")
-	errCallbackReceiveID = errors.New("wecom callback: receive id mismatch")
+	ErrConfig    = errors.New("wecom callback: invalid configuration")
+	ErrSignature = errors.New("wecom callback: signature mismatch")
+	ErrEnvelope  = errors.New("wecom callback: invalid encrypted envelope")
+	ErrDecrypt   = errors.New("wecom callback: decryption failed")
+	ErrReceiveID = errors.New("wecom callback: receive id mismatch")
+)
+
+var (
+	errCallbackConfig    = ErrConfig
+	errCallbackSignature = ErrSignature
+	errCallbackEnvelope  = ErrEnvelope
+	errCallbackDecrypt   = ErrDecrypt
+	errCallbackReceiveID = ErrReceiveID
 )
 
 // CallbackCrypto verifies and decrypts WeCom callback requests and encrypts

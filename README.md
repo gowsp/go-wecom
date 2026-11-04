@@ -10,6 +10,15 @@
 
 [快速开始](#快速开始) · [功能导航](#功能导航) · [功能覆盖](#功能覆盖) · [接入方式](#接入方式) · [调用约定](#调用约定) · [更多资料](#更多资料)
 
+## 可靠性与兼容性说明
+
+- 客服状态按[官方协议](https://developer.work.weixin.qq.com/document/path/94669)：`0` 未处理、`1` 智能助手、`2` 排队、`3` 人工、`4` 已结束/未开始。旧实现的助手/排队常量有误；升级时请检查调用方的硬编码数字，不能仅以编译通过判断业务兼容。
+- `KF.ChangeState` 提供通用状态变更及返回的事件响应 `msg_code`；具体接待策略由应用决定，状态转换许可由企业微信校验。
+- `KF.SendText` 保留按 UTF-8 字节边界截断的原行为。新接口 `SendTextWithResult` 接收 `kf.SendTextRequest`，超出 2048 字节返回 `kf.ErrTextTooLong`，不静默截断，并返回 `msgid`。接口成功仅表示请求被接受，仍需处理发送失败事件。
+- `client.TransportError` 可通过 `errors.As` 获取 `Stage`、`Kind` 和 `TimedOut`，不保留原始 URL 或底层错误文本。分类是尽力而为，无法识别的 TLS/网络故障归为 `network`，不是可直接套用的重试策略；非幂等发送不要盲目重试。
+- 回调错误可通过 `errors.Is` 判断 `callback.ErrConfig`、`ErrSignature`、`ErrEnvelope`、`ErrDecrypt` 和 `ErrReceiveID`。验签不等于防重放；应用负责消息去重、持久化和适当的时间策略，兼顾企业微信重试。
+- 等待 token 刷新的调用可被自身 context 取消；取消等待者不会取消另一个调用已经发起的刷新。
+
 ## 快速开始
 
 ### 1. 安装

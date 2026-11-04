@@ -79,7 +79,7 @@ type Client struct {
 	token     string
 	expiresAt time.Time
 
-	refreshMu sync.Mutex // serializes token refreshes
+	refreshGate chan struct{} // serializes refreshes; waiting callers can cancel
 }
 
 // Option customizes the shared client. Options exist for tests and for
@@ -141,6 +141,7 @@ func New(corpID, corpSecret string, options ...Option) *Client {
 		downloadLimit: defaultDownloadLimit,
 		responseLimit: maxResponseBytes,
 		now:           time.Now,
+		refreshGate:   make(chan struct{}, 1),
 	}
 	for _, option := range options {
 		if option != nil {
@@ -164,8 +165,15 @@ func (c *Client) Token(ctx context.Context) (string, error) {
 	if token := c.cachedToken(); token != "" {
 		return token, nil
 	}
-	c.refreshMu.Lock()
-	defer c.refreshMu.Unlock()
+	select {
+	case c.refreshGate <- struct{}{}:
+		defer func() { <-c.refreshGate }()
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	// Another goroutine may have refreshed while this one waited.
 	if token := c.cachedToken(); token != "" {
 		return token, nil
@@ -384,12 +392,15 @@ func (c *Client) doLimited(req *http.Request, limit int64) ([]byte, error) {
 		if ctxErr := req.Context().Err(); ctxErr != nil {
 			return nil, ctxErr
 		}
-		return nil, errors.New("wecom: request failed")
+		return nil, transportError("request", err)
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if err != nil {
-		return nil, errors.New("wecom: read response failed")
+		if ctxErr := req.Context().Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, transportError("read", err)
 	}
 	if int64(len(body)) > limit {
 		return nil, ErrResponseTooLarge
@@ -534,7 +545,7 @@ func (c *Client) FetchURL(ctx context.Context, rawURL string, header http.Header
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, ctxErr
 		}
-		return nil, errors.New("wecom: download failed")
+		return nil, transportError("request", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -542,7 +553,10 @@ func (c *Client) FetchURL(ctx context.Context, rawURL string, header http.Header
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, c.downloadLimit+1))
 	if err != nil {
-		return nil, errors.New("wecom: read download failed")
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, transportError("read", err)
 	}
 	if int64(len(data)) > c.downloadLimit {
 		return nil, ErrResponseTooLarge

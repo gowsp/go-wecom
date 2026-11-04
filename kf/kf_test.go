@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestKfClientTransferQueuesForEmployee(t *testing.T) {
+func TestKfClientTransferAssignsEmployee(t *testing.T) {
 	var got map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/cgi-bin/gettoken" {
@@ -54,7 +54,7 @@ func TestKfClientAccept(t *testing.T) {
 	if err := c.Accept(context.Background(), "account", "external"); err != nil {
 		t.Fatal(err)
 	}
-	if got["service_state"] != float64(2) || got["open_kfid"] != "account" || got["external_userid"] != "external" {
+	if got["service_state"] != float64(1) || got["open_kfid"] != "account" || got["external_userid"] != "external" {
 		t.Fatalf("body=%v", got)
 	}
 	if _, ok := got["servicer_userid"]; ok {
